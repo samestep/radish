@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - run: make all
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
