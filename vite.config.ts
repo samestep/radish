@@ -6,7 +6,12 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: { drawing: "drawing/index.html" },
-      output: { manualChunks: { "react-firebaseui": ["react-firebaseui"] } },
+      output: {
+        manualChunks: {
+          "flexlayout-react": ["flexlayout-react"],
+          "react-firebaseui": ["react-firebaseui"],
+        },
+      },
     },
   },
   plugins: [react()],
