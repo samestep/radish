@@ -10,10 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@uiw/react-codemirror": "^4",
     "firebase": "^9",
+    "firebaseui": "^6",
+    "flexlayout-react": "^0.6",
     "react": "^17",
     "react-dom": "^17",
-    "react-firebaseui": "^6"
+    "react-firebaseui": "^6",
+    "react-responsive": "^10"
   },
   "devDependencies": {
     "@types/react": "^17",

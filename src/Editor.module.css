@@ -1,0 +1,19 @@
+.signout {
+  background-color: #121212;
+}
+
+.signout:hover {
+  background-color: #242424;
+}
+
+.signout:active {
+  background-color: #363636;
+}
+
+.github {
+  color: lightgrey;
+}
+
+.github:hover {
+  color: white;
+}
