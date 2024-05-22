@@ -22,7 +22,6 @@ export const Login = () => {
     <div style={{ textAlign: "center", fontFamily: "sans-serif" }}>
       <img src={logo} alt="Radish logo" style={{ height: "256px" }} />
       <h1>Radish</h1>
-      <p>Please sign in:</p>
       <FirebaseAuth uiConfig={uiConfig} firebaseAuth={auth} />
     </div>
   );
