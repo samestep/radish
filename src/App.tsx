@@ -14,7 +14,7 @@ const App = () => {
     return () => unregisterAuthObserver(); // Make sure we un-register Firebase observers when the component unmounts.
   }, []);
 
-  return user === null ? <Login /> : <Editor />;
+  return user === null ? <Login /> : <Editor uid={user.uid} />;
 };
 
 export default App;

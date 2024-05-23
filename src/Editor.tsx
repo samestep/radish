@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import styles from "./Editor.module.css";
 import logo from "./assets/logo.png";
-import { auth } from "./client";
+import { auth, getDownloadURL, uploadString, userFileRef } from "./client";
 import * as colors from "./colors";
 
 const useNow = ({ ms }: { ms: number }) => {
@@ -25,8 +25,6 @@ const minutesAgo = ({ then, now }: { then: Date; now: Date }) => {
   else return `${minutes} minutes ago`;
 };
 
-const example = "Hello, Radish!";
-
 const Logo = () => {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -44,20 +42,23 @@ const Logo = () => {
   );
 };
 
+interface Saved {
+  date: Date;
+  code: string;
+}
+
 interface SaveProps {
-  lastSaved: undefined | Date;
-  saved: string;
+  saved: Saved | undefined;
   current: string;
   save: () => void;
 }
 
-const Save = ({ lastSaved, saved, current, save }: SaveProps) => {
+const Save = ({ saved, current, save }: SaveProps) => {
   const now = useNow({ ms: 60000 });
-  const isSaved = saved === current;
-  const lastSavedString =
-    isSaved || lastSaved === undefined
-      ? ""
-      : `last saved ${minutesAgo({ then: lastSaved, now })}`;
+  const isSaved = saved === undefined || saved.code === current;
+  const lastSavedString = isSaved
+    ? ""
+    : `last saved ${minutesAgo({ then: saved.date, now })}`;
   return (
     <div
       style={{
@@ -187,7 +188,31 @@ const model = FlexLayout.Model.fromJson({
   },
 });
 
-export const Editor = () => {
+export interface EditorProps {
+  uid: string;
+}
+
+export const Editor = ({ uid }: EditorProps) => {
+  const [saved, setSaved] = useState<Saved | undefined>(undefined);
+  const [code, setCode] = useState("");
+
+  useEffect(() => {
+    getDownloadURL(userFileRef(uid)).then(
+      async (url) => {
+        const response = await fetch(url);
+        const date = new Date(response.headers.get("Last-Modified") as string);
+        const code = await response.text();
+        setSaved({ date, code });
+        setCode(code);
+      },
+      () => {
+        const code = "Hello, Radish!";
+        setSaved({ date: new Date(), code });
+        setCode(code);
+      },
+    );
+  }, [uid]);
+
   const isPortrait = useMediaQuery({ query: "(orientation: portrait)" });
 
   useEffect(() => {
@@ -198,16 +223,13 @@ export const Editor = () => {
     );
   }, [isPortrait]);
 
-  const [lastSaved, setLastSaved] = useState<undefined | Date>(undefined);
-  const [saved, setSaved] = useState(example);
-  const [code, setCode] = useState(saved);
-
   const factory = (node: FlexLayout.TabNode) => {
     const { width, height } = node.getRect();
     switch (node.getComponent()) {
       case "workspace":
         return <Workspace />;
       case "code": {
+        if (saved === undefined) return <></>;
         return (
           <CodeMirror
             width={`${width}px`}
@@ -216,7 +238,7 @@ export const Editor = () => {
             onChange={(value) => {
               setCode(value);
             }}
-            value={saved}
+            value={saved.code}
           />
         );
       }
@@ -249,12 +271,11 @@ export const Editor = () => {
     >
       <Top
         saveProps={{
-          lastSaved: lastSaved,
           saved,
           current: code,
-          save: () => {
-            setLastSaved(new Date());
-            setSaved(code);
+          save: async () => {
+            await uploadString(userFileRef(uid), code);
+            setSaved({ date: new Date(), code });
           },
         }}
       />
