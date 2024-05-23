@@ -1,3 +1,27 @@
+.save {
+  background-color: darkgrey;
+}
+
+.save:hover {
+  background-color: lightgrey;
+}
+
+.save:active {
+  background-color: grey;
+}
+
+.save-greyed {
+  background-color: #121212;
+}
+
+.github {
+  color: lightgrey;
+}
+
+.github:hover {
+  color: white;
+}
+
 .signout {
   background-color: #121212;
 }
@@ -8,12 +32,4 @@
 
 .signout:active {
   background-color: #363636;
-}
-
-.github {
-  color: lightgrey;
-}
-
-.github:hover {
-  color: white;
 }
