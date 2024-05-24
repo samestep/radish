@@ -1,3 +1,4 @@
+import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
 import * as FlexLayout from "flexlayout-react";
 import { useEffect, useState } from "react";
@@ -6,17 +7,40 @@ import styles from "./Editor.module.css";
 import logo from "./assets/logo.png";
 import { auth, getDownloadURL, uploadString, userFileRef } from "./client";
 import * as colors from "./colors";
+import { useNow, useResource } from "./hooks";
+import { Req, Resp } from "./message";
+import RawWorker from "./worker?worker";
 
-const useNow = ({ ms }: { ms: number }) => {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(new Date());
-    }, ms);
-    return () => clearInterval(interval);
-  }, [ms]);
-  return now;
-};
+class EvalWorker {
+  private worker = new RawWorker();
+  private working = false;
+  private queue: Req | undefined = undefined;
+
+  onmessage: ((r: Resp) => void) | undefined = undefined;
+
+  constructor() {
+    this.worker.onmessage = (e: MessageEvent<Resp>) => {
+      if (this.queue === undefined) {
+        this.working = false;
+      } else {
+        this.worker.postMessage(this.queue);
+        this.queue = undefined;
+      }
+      if (this.onmessage !== undefined) {
+        this.onmessage(e.data);
+      }
+    };
+  }
+
+  request(message: Req) {
+    if (this.working) {
+      this.queue = message;
+    } else {
+      this.working = true;
+      this.worker.postMessage(message);
+    }
+  }
+}
 
 const minutesAgo = ({ then, now }: { then: Date; now: Date }) => {
   const minutes = Math.round((now.getTime() - then.getTime()) / 60000);
@@ -159,6 +183,26 @@ const Workspace = () => {
   );
 };
 
+interface OutputProps {
+  resp: Resp;
+}
+
+const Output = ({ resp }: OutputProps) => {
+  switch (resp.kind) {
+    case "success":
+      return <pre>{resp.output}</pre>;
+    case "parse":
+    case "error":
+      return <pre style={{ color: "red" }}>{resp.message}</pre>;
+    case "type":
+      return (
+        <span style={{ color: "red" }}>
+          expected <code>string</code>, got <code>{resp.type}</code>
+        </span>
+      );
+  }
+};
+
 const model = FlexLayout.Model.fromJson({
   global: {
     tabEnableClose: false,
@@ -196,6 +240,16 @@ export const Editor = ({ uid }: EditorProps) => {
   const [saved, setSaved] = useState<Saved | undefined>(undefined);
   const [code, setCode] = useState("");
 
+  const [result, setResult] = useState<Resp>({ kind: "success", output: "" });
+
+  const worker = useResource(() => {
+    const worker = new EvalWorker();
+    worker.onmessage = (r) => {
+      setResult(r);
+    };
+    return { resource: worker, cleanup: () => {} };
+  }, []);
+
   useEffect(() => {
     getDownloadURL(userFileRef(uid)).then(
       async (url) => {
@@ -204,14 +258,16 @@ export const Editor = ({ uid }: EditorProps) => {
         const code = await response.text();
         setSaved({ date, code });
         setCode(code);
+        worker.request({ code });
       },
       () => {
-        const code = "Hello, Radish!";
+        const code = 'return "Hello, Radish!"';
         setSaved({ date: new Date(), code });
         setCode(code);
+        worker.request({ code });
       },
     );
-  }, [uid]);
+  }, [uid, worker]);
 
   const isPortrait = useMediaQuery({ query: "(orientation: portrait)" });
 
@@ -235,16 +291,18 @@ export const Editor = ({ uid }: EditorProps) => {
             width={`${width}px`}
             height={`${height}px`}
             theme="dark"
+            extensions={[javascript()]}
             onChange={(value) => {
               setCode(value);
+              worker.request({ code: value });
             }}
             value={saved.code}
           />
         );
       }
-      case "output": {
+      case "output":
         return (
-          <pre
+          <div
             style={{
               margin: 0,
               padding: "20px",
@@ -253,10 +311,9 @@ export const Editor = ({ uid }: EditorProps) => {
               backgroundColor: colors.background,
             }}
           >
-            {code}
-          </pre>
+            <Output resp={result} />
+          </div>
         );
-      }
     }
   };
 
