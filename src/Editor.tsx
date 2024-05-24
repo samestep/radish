@@ -1,4 +1,5 @@
 import { javascript } from "@codemirror/lang-javascript";
+import interact from "@replit/codemirror-interact";
 import CodeMirror from "@uiw/react-codemirror";
 import * as FlexLayout from "flexlayout-react";
 import { useCallback, useEffect, useState } from "react";
@@ -301,7 +302,24 @@ export const Editor = ({ uid }: EditorProps) => {
             width={`${width}px`}
             height={`${height}px`}
             theme="dark"
-            extensions={[javascript({ jsx: true, typescript: true })]}
+            extensions={[
+              javascript({ jsx: true, typescript: true }),
+              interact({
+                rules: [
+                  {
+                    regexp: /-?\b\d+\.?\d*\b/g,
+                    cursor: "ew-resize",
+                    onDrag: (text, setText, e) => {
+                      // TODO: size aware
+                      // TODO: small interval with shift key?
+                      const newVal = Number(text) + e.movementX;
+                      if (isNaN(newVal)) return;
+                      setText(newVal.toString());
+                    },
+                  },
+                ],
+              }),
+            ]}
             onChange={(value) => {
               update(value);
             }}

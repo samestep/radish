@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6",
+    "@replit/codemirror-interact": "^6",
     "@uiw/react-codemirror": "^4",
     "firebase": "^9",
     "firebaseui": "^6",
