@@ -1,14 +1,17 @@
 import { javascript } from "@codemirror/lang-javascript";
 import CodeMirror from "@uiw/react-codemirror";
 import * as FlexLayout from "flexlayout-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMediaQuery } from "react-responsive";
+import ts from "typescript";
 import styles from "./Editor.module.css";
+import example from "./assets/example?raw";
 import logo from "./assets/logo.png";
 import { auth, getDownloadURL, uploadString, userFileRef } from "./client";
 import * as colors from "./colors";
 import { useNow, useResource } from "./hooks";
 import { Req, Resp } from "./message";
+import { render } from "./render";
 import RawWorker from "./worker?worker";
 
 class EvalWorker {
@@ -190,16 +193,10 @@ interface OutputProps {
 const Output = ({ resp }: OutputProps) => {
   switch (resp.kind) {
     case "success":
-      return <pre>{resp.output}</pre>;
+      return render(resp.output);
     case "parse":
     case "error":
       return <pre style={{ color: "red" }}>{resp.message}</pre>;
-    case "type":
-      return (
-        <span style={{ color: "red" }}>
-          expected <code>string</code>, got <code>{resp.type}</code>
-        </span>
-      );
   }
 };
 
@@ -237,9 +234,6 @@ export interface EditorProps {
 }
 
 export const Editor = ({ uid }: EditorProps) => {
-  const [saved, setSaved] = useState<Saved | undefined>(undefined);
-  const [code, setCode] = useState("");
-
   const [result, setResult] = useState<Resp>({ kind: "success", output: "" });
 
   const worker = useResource(() => {
@@ -250,6 +244,24 @@ export const Editor = ({ uid }: EditorProps) => {
     return { resource: worker, cleanup: () => {} };
   }, []);
 
+  const [saved, setSaved] = useState<Saved | undefined>(undefined);
+  const [code, setCode] = useState("");
+
+  const update = useCallback(
+    (code: string) => {
+      setCode(code);
+      worker.request({
+        code: ts.transpileModule(code, {
+          compilerOptions: {
+            module: ts.ModuleKind.ESNext,
+            jsx: ts.JsxEmit.React,
+          },
+        }).outputText,
+      });
+    },
+    [worker],
+  );
+
   useEffect(() => {
     getDownloadURL(userFileRef(uid)).then(
       async (url) => {
@@ -257,17 +269,15 @@ export const Editor = ({ uid }: EditorProps) => {
         const date = new Date(response.headers.get("Last-Modified") as string);
         const code = await response.text();
         setSaved({ date, code });
-        setCode(code);
-        worker.request({ code });
+        update(code);
       },
       () => {
-        const code = 'return "Hello, Radish!"';
+        const code = example;
         setSaved({ date: new Date(), code });
-        setCode(code);
-        worker.request({ code });
+        update(code);
       },
     );
-  }, [uid, worker]);
+  }, [uid, update]);
 
   const isPortrait = useMediaQuery({ query: "(orientation: portrait)" });
 
@@ -291,10 +301,9 @@ export const Editor = ({ uid }: EditorProps) => {
             width={`${width}px`}
             height={`${height}px`}
             theme="dark"
-            extensions={[javascript()]}
+            extensions={[javascript({ jsx: true, typescript: true })]}
             onChange={(value) => {
-              setCode(value);
-              worker.request({ code: value });
+              update(value);
             }}
             value={saved.code}
           />

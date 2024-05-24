@@ -5,11 +5,6 @@ export interface Req {
 
 /** response */
 export type Resp =
-  | { kind: "success"; output: string }
+  | { kind: "success"; output: unknown }
   | { kind: "parse"; message: string }
-  | { kind: "error"; message: string }
-  | {
-      kind: "type";
-      /** result of calling `typeof` on function output */
-      type: string;
-    };
+  | { kind: "error"; message: string };
