@@ -47,10 +47,19 @@ class EvalWorker {
 }
 
 const minutesAgo = ({ then, now }: { then: Date; now: Date }) => {
-  const minutes = Math.round((now.getTime() - then.getTime()) / 60000);
+  const minutes = Math.floor((now.getTime() - then.getTime()) / 60000);
   if (minutes <= 0) return "just now";
   else if (minutes === 1) return "1 minute ago";
-  else return `${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours === 0) return `${minutes} minutes ago`;
+  else if (hours === 1) return "1 hour ago";
+  const days = Math.floor(hours / 24);
+  if (days === 0) return `${hours} hours ago`;
+  else if (days === 1) return "1 day ago";
+  const weeks = Math.floor(days / 7);
+  if (weeks === 0) return `${days} days ago`;
+  else if (weeks === 1) return "1 week ago";
+  return `${weeks} weeks ago`;
 };
 
 const Logo = () => {
