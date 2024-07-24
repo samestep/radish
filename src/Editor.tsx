@@ -12,7 +12,7 @@ import { auth, getDownloadURL, uploadString, userFileRef } from "./client";
 import * as colors from "./colors";
 import { useNow, useResource } from "./hooks";
 import { Req, Resp } from "./message";
-import { render } from "./render";
+import { dom, react } from "./render";
 import RawWorker from "./worker?worker";
 
 class EvalWorker {
@@ -36,7 +36,7 @@ class EvalWorker {
     };
   }
 
-  request(message: Req) {
+  request(message: Req): void {
     if (this.working) {
       this.queue = message;
     } else {
@@ -105,7 +105,7 @@ const Save = ({ saved, current, save }: SaveProps) => {
       }}
     >
       <button
-        className={styles[isSaved ? "save-greyed" : "save"]}
+        className={styles[isSaved ? "top-button-greyed" : "top-button"]}
         style={{
           height: "100%",
           padding: "5px 10px",
@@ -128,6 +128,48 @@ const Save = ({ saved, current, save }: SaveProps) => {
   );
 };
 
+interface DownloadProps {
+  resp: Resp;
+}
+
+const Download = ({ resp }: DownloadProps) => {
+  const success = resp.kind === "success";
+  const download = () => {
+    if (!success) return;
+    const str = dom(resp.output).outerHTML;
+    const blob = new Blob([str], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "drawing.svg";
+      document.body.appendChild(a);
+      try {
+        a.click();
+      } finally {
+        document.body.removeChild(a);
+      }
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+  return (
+    <button
+      className={styles[success ? "top-button" : "top-button-greyed"]}
+      style={{
+        height: "100%",
+        padding: "5px 10px",
+        color: "black",
+        borderRadius: "10px",
+        border: `2px solid ${colors.dark}`,
+      }}
+      onClick={success ? download : undefined}
+    >
+      download
+    </button>
+  );
+};
+
 const GitHub = () => {
   return (
     <a
@@ -140,9 +182,10 @@ const GitHub = () => {
 
 interface TopProps {
   saveProps: SaveProps;
+  downloadProps: DownloadProps;
 }
 
-const Top = ({ saveProps }: TopProps) => {
+const Top = ({ saveProps, downloadProps }: TopProps) => {
   const gap = "20px";
   return (
     <div
@@ -159,6 +202,7 @@ const Top = ({ saveProps }: TopProps) => {
         <Save {...saveProps} />
       </div>
       <div style={{ display: "flex", gap }}>
+        <Download {...downloadProps} />
         <GitHub />
       </div>
     </div>
@@ -203,7 +247,7 @@ interface OutputProps {
 const Output = ({ resp }: OutputProps) => {
   switch (resp.kind) {
     case "success":
-      return render(resp.output);
+      return react(resp.output);
     case "parse":
     case "error":
       return <pre style={{ color: "red" }}>{resp.message}</pre>;
@@ -371,6 +415,7 @@ export const Editor = ({ uid }: EditorProps) => {
             setSaved({ date: new Date(), code });
           },
         }}
+        downloadProps={{ resp: result }}
       />
       <div style={{ position: "relative", flex: 1 }}>
         <FlexLayout.Layout model={model} factory={factory} />

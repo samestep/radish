@@ -1,16 +1,16 @@
-.save {
+.top-button {
   background-color: darkgrey;
 }
 
-.save:hover {
+.top-button:hover {
   background-color: lightgrey;
 }
 
-.save:active {
+.top-button:active {
   background-color: grey;
 }
 
-.save-greyed {
+.top-button-greyed {
   background-color: #121212;
 }
 
