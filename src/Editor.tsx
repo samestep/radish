@@ -159,7 +159,7 @@ const Download = ({ resp }: DownloadProps) => {
       style={{
         height: "100%",
         padding: "5px 10px",
-        color: "black",
+        color: success ? "black" : colors.dark,
         borderRadius: "10px",
         border: `2px solid ${colors.dark}`,
       }}
