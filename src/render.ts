@@ -16,7 +16,10 @@ export const dom = (element: unknown): HTMLElement => {
       if (element === null) return null as any;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const elem: any = element;
-      const domElem = document.createElement(elem.type);
+      const domElem = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        elem.type,
+      );
       Object.entries(elem.props).forEach(([key, value]) => {
         domElem.setAttribute(key, value);
       });
